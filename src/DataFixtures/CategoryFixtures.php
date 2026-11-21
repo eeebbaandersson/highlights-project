@@ -11,12 +11,12 @@ class CategoryFixtures extends Fixture
     public function load(ObjectManager $manager): void
     {
         $categories = [
-            ['name' => 'Travel', 'color' => 'plane'],
-            ['name' => 'Health', 'color' => 'heart'],
-            ['name' => 'Concert', 'color' => 'music'],
-            ['name' => 'Personal', 'color' => 'user'],
-            ['name' => 'Career', 'color' => 'briefcase'],
-            ['name' => 'Education', 'color' => 'graduation-cap'],
+            ['name' => 'Travel', 'icon' => 'plane'],
+            ['name' => 'Health', 'icon' => 'heart'],
+            ['name' => 'Concert', 'icon' => 'music'],
+            ['name' => 'Personal', 'icon' => 'user'],
+            ['name' => 'Career', 'icon' => 'briefcase'],
+            ['name' => 'Education', 'icon' => 'graduation-cap'],
         ];
 
         foreach ($categories as $data) {

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import CategoryIcon from '../components/CategoryIcon.vue'
 
 const selectedYear = ref(2026)
 
@@ -19,15 +20,15 @@ const months = [
 ]
 
 const highlights = ref([
-    { id: 1, date: '2026-01-14', title: 'Projektstart & Arkitektur', category: 'Arbete' },
-    { id: 2, date: '2026-02-18', title: 'Första prototypen i Vue', category: 'Projekt' },
-    { id: 3, date: '2026-03-08', title: 'Vinterresa till Åre', category: 'Resa' },
-    { id: 4, date: '2026-05-19', title: 'Halvmaraton i Göteborg', category: 'Träning' },
-    { id: 5, date: '2026-05-28', title: 'Första kvällen på balkongen', category: 'Livet' },
-    { id: 6, date: '2026-07-12', title: 'Segling i skärgården', category: 'Resa' },
-    { id: 7, date: '2026-08-22', title: 'Sensommarkväll vid havet', category: 'Livet' },
-    { id: 8, date: '2026-09-04', title: 'Lansering av v1.0', category: 'Arbete' },
-    { id: 9, date: '2026-11-20', title: 'Tidslinjen tar form', category: 'Projekt' },
+    { id: 1, date: '2026-01-14', title: 'Projektstart & Arkitektur', category: 'Career' },
+    { id: 2, date: '2026-02-18', title: 'Första prototypen i Vue', category: 'Project' },
+    { id: 3, date: '2026-03-08', title: 'Vinterresa till Åre', category: 'Travel' },
+    { id: 4, date: '2026-05-19', title: 'Halvmaraton i Göteborg', category: 'Training' },
+    { id: 5, date: '2026-05-28', title: 'Första kvällen på balkongen', category: 'Home' },
+    { id: 6, date: '2026-07-12', title: 'Segling i skärgården', category: 'Travel' },
+    { id: 7, date: '2026-08-22', title: 'Sensommarkväll vid havet', category: 'Personal' },
+    { id: 8, date: '2026-09-04', title: 'Concert', category: 'Concert' },
+    { id: 9, date: '2026-11-20', title: 'Tidslinjen tar form', category: 'Milestone' },
 ])
 
 function parseDateParts(isoDate) {
@@ -101,7 +102,7 @@ const highlightsByMonth = computed(() => {
                                 :key="item.id"
                                 class="highlight-item"
                             >
-                                <div class="item-node"></div>
+                                <CategoryIcon :category="item.category" class="item-icon" />
                                 <div class="item-content">
                                     <span class="item-date">{{ item.formattedDate }}</span>
                                     <h3 class="item-title">{{ item.title }}</h3>
@@ -129,15 +130,6 @@ const highlightsByMonth = computed(() => {
     justify-content: space-between;
     align-items: flex-end;
     margin-bottom: 2rem;
-}
-
-.eyebrow {
-    display: block;
-    font-size: 0.7rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.45);
-    margin-bottom: 0.35rem;
 }
 
 .timeline-header h1 {
@@ -275,6 +267,7 @@ const highlightsByMonth = computed(() => {
     flex-direction: column;
     gap: 0.85rem;
     padding: 0.35rem 0;
+    margin-left: -1px;
 }
 
 .month-column.is-top .items-stack {
@@ -294,20 +287,19 @@ const highlightsByMonth = computed(() => {
     transform: scale(1.02);
 }
 
-.item-node {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: rgba(148, 185, 225, 0.08);
-    border: 1px solid rgba(180, 210, 245, 0.35);
+.item-icon {
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
-    margin-top: 14px;
-    transition: all 0.2s ease;
+    margin-top: 13px;
+    margin-left: -2px;
+    color: rgba(165, 198, 235, 0.45);
+    transition: color 0.2s ease;
 }
 
-.highlight-item:hover .item-node {
-    background: rgba(180, 210, 245, 0.28);
-    border-color: rgba(255, 255, 255, 0.85);
+.highlight-item:hover .item-icon {
+    color: #67e8f9;
+    opacity: 1;
 }
 
 .item-content {
@@ -342,6 +334,11 @@ const highlightsByMonth = computed(() => {
 
 /* Mobile view */
 @media (max-width: 768px) {
+    .timeline-page {
+        padding: 1.5rem 1.25rem 3rem;
+        overflow-x: hidden;
+    }
+
     .timeline-header {
         align-items: center;
         gap: 1rem;
@@ -359,18 +356,6 @@ const highlightsByMonth = computed(() => {
     .btn-ghost {
         flex-shrink: 0;
         padding: 0.45rem 0.85rem;
-    }
-
-    .timeline-page {
-        padding: 1.5rem 1.25rem 3rem;
-    }
-
-    .timeline-header {
-        margin-bottom: 1.5rem;
-    }
-
-    .timeline-header h1 {
-        font-size: 1.5rem;
     }
 
     .timeline-scroll-container {
@@ -410,7 +395,6 @@ const highlightsByMonth = computed(() => {
         padding: 0.65rem 0;
     }
 
-
     .month-column.is-top .stem-wrapper,
     .month-column.is-bottom .stem-wrapper {
         position: relative;
@@ -425,7 +409,10 @@ const highlightsByMonth = computed(() => {
     .month-column.is-top .items-stack,
     .month-column.is-bottom .items-stack {
         flex-direction: column;
+        gap: 0.85rem;
         padding: 0;
+        margin-left: 0.5rem;
+        margin-top: -1.5px;
     }
 
     .month-marker,
@@ -437,7 +424,6 @@ const highlightsByMonth = computed(() => {
         transform: none;
         padding: 0;
     }
-
 
     .month-column.is-top .axis-dot,
     .month-column.is-bottom .axis-dot {
@@ -457,19 +443,14 @@ const highlightsByMonth = computed(() => {
         flex-shrink: 0;
     }
 
-    .items-stack {
-        margin-left: 0.35rem;
-        padding: 0;
-    }
-
     .item-content {
+        flex: 1;
         width: auto;
-        max-width: calc(100vw - 6.5rem);
+        min-width: 0;
     }
 
     .highlight-item:hover {
         transform: translatex(2px);
     }
-
 }
 </style>
