@@ -2,11 +2,33 @@
 import { ref, computed, onMounted } from 'vue'
 import CategoryIcon from '../components/CategoryIcon.vue'
 import { highlightService } from '../service/highlightService.js'
+import HighlightDetailModal from "../components/HighlightDetailModal.vue";
 
 const selectedYear = ref(2026)
 const highlights = ref([])
-const isLoading = ref(false);
+const isLoading = ref(false)
 const errorMessage = ref('')
+
+const selectedHighlight = ref(null)
+
+const defaultCategories = [
+    'Education',
+    'SmallWin',
+    'Travel',
+    'Personal',
+    'Home',
+    'Training',
+    'Project',
+    'Celebration',
+    'Milestone',
+]
+
+const availableCategories = computed(() => {
+    const fromHighlights = highlights.value
+        .map((item) => item.category)
+        .filter(Boolean)
+    return [...new Set([...defaultCategories, ...fromHighlights])]
+})
 
 const months = [
     { index: 1, label: 'JAN' },
@@ -22,6 +44,8 @@ const months = [
     { index: 11, label: 'NOV' },
     { index: 12, label: 'DEC' },
 ]
+
+
 
 function parseDateParts(isoDate) {
     if (!isoDate) return { year: null, month: null, day: null }
@@ -71,6 +95,19 @@ const highlightsByMonth = computed(() => {
 
     return grouped
 })
+
+function handleHighlightUpdated(updatedItem) {
+    if (!updatedItem) return
+    highlights.value = highlights.value.map((item) =>
+        item.id === updatedItem.id ? updatedItem : item
+    )
+    selectedHighlight.value = updatedItem
+}
+
+function handleHighlightDeleted(deletedId) {
+    highlights.value = highlights.value.filter((item) => item.id !== deletedId)
+    selectedHighlight.value = null
+}
 </script>
 
 <template>
@@ -112,6 +149,7 @@ const highlightsByMonth = computed(() => {
                                 v-for="item in highlightsByMonth[month.index]"
                                 :key="item.id"
                                 class="highlight-item"
+                                @click="selectedHighlight = item"
                             >
                                 <CategoryIcon :category="item.category" class="item-icon" />
                                 <div class="item-content">
@@ -125,6 +163,13 @@ const highlightsByMonth = computed(() => {
             </div>
         </section>
     </main>
+    <HighlightDetailModal
+        :highlight="selectedHighlight"
+        :categories="availableCategories"
+        @close="selectedHighlight = null"
+        @updated="handleHighlightUpdated"
+        @deleted="handleHighlightDeleted"
+    />
 </template>
 
 <style scoped>
