@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import CategoryIcon from './CategoryIcon.vue'
 import { highlightService } from '../service/highlightService.js'
 
@@ -23,6 +23,11 @@ const emit = defineEmits(['close', 'created'])
 const isSaving = ref(false)
 const errorMessage = ref('')
 let formSession = 0
+
+const dialogEl = ref(null)
+const titleEl = ref(null)
+let opener = null
+let openRequest = 0
 
 const form = ref({
     title: '',
@@ -49,14 +54,34 @@ function resetForm() {
     }
 }
 
+function restoreFocus() {
+    if (opener?.isConnected && typeof opener.focus === 'function') {
+        opener.focus()
+    }
+    opener = null
+}
+
 watch(
     () => props.open,
-    (isOpen) => {
+    async (isOpen) => {
+        const request = ++openRequest
         formSession += 1
-        if (isOpen) {
-            resetForm()
-            isSaving.value = false
+
+        if (!isOpen) {
+            if (dialogEl.value?.open) dialogEl.value.close()
+            restoreFocus()
+            return
         }
+
+        opener = document.activeElement
+        resetForm()
+        isSaving.value = false
+        await nextTick()
+
+        if (request !== openRequest || !props.open || !dialogEl.value) return
+
+        if (!dialogEl.value.open) dialogEl.value.showModal()
+        titleEl.value?.focus()
     },
     { immediate: true, flush: 'sync' }
 )
@@ -65,6 +90,18 @@ function closeModal() {
     formSession += 1
     isSaving.value = false
     emit('close')
+}
+
+function handleDialogClick(event) {
+    if (event.target !== dialogEl.value) return
+
+    const rect = dialogEl.value.getBoundingClientRect()
+    if (
+        event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom
+    ) {
+        closeModal()
+    }
 }
 
 async function handleCreate() {
@@ -96,25 +133,23 @@ async function handleCreate() {
     }
 }
 
-function handleKeydown(event) {
-    if (event.key === 'Escape' && props.open) {
-        closeModal()
-    }
-}
-
-onMounted(() => window.addEventListener('keydown', handleKeydown))
-onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
-
+onBeforeUnmount(() => {
+    ++openRequest
+    formSession += 1
+    if (dialogEl.value?.open) dialogEl.value.close()
+    restoreFocus()
+})
 </script>
 
 <template>
     <Teleport to="body">
-        <div
-            v-if="open"
-            class="modal-backdrop"
-            @click.self="closeModal()"
+        <dialog
+            ref="dialogEl"
+            class="modal-card"
+            aria-label="New highlight"
+            @cancel.prevent="closeModal()"
+            @click="handleDialogClick"
         >
-            <div class="modal-card" role="dialog" aria-modal="true" aria-label="New highlight">
                 <header class="modal-header">
                     <div class="modal-meta">
                         <CategoryIcon :category="form.category" class="meta-icon" />
@@ -136,6 +171,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
                     <label class="field">
                         <span>Title</span>
                         <input
+                            ref="titleEl"
                             v-model="form.title"
                             type="text"
                             required
@@ -189,8 +225,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
                         </button>
                     </footer>
                 </form>
-            </div>
-        </div>
+        </dialog>
     </Teleport>
 </template>
 
@@ -198,7 +233,6 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(5, 10, 14, 0.72);
     backdrop-filter: blur(6px);
     display: flex;
     align-items: center;
@@ -206,6 +240,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
     padding: 1.5rem;
     z-index: 50;
 }
+
 
 .modal-card {
     width: 100%;
@@ -216,6 +251,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
     padding: 1.5rem 1.75rem;
     color: rgba(255, 255, 255, 0.92);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.modal-card::backdrop {
+    background: rgba(5, 10, 14, 0.72);
+    backdrop-filter: blur(6px);
 }
 
 .modal-header {
