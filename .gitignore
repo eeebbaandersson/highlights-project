@@ -17,3 +17,8 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+
+###> jetbrains/idea ###
+.idea/
+###< jetbrains/idea ###
