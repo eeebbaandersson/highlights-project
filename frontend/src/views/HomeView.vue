@@ -50,7 +50,7 @@ h1 {
     font-weight: 800;
     color: #ffffff;
     margin-bottom: 1rem;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
 }
 
 .highlight-word {
@@ -106,10 +106,8 @@ h1 {
     background-color: rgba(103, 232, 249, 0.1);
     border: 1px solid #67e8f9;
     color: #67e8f9;
-
     display: inline-block;
     text-decoration: none;
-    transition: transform 0.2s ease;
 }
 
 .primary-btn:hover {

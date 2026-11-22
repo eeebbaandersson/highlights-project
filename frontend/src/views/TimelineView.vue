@@ -1,8 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import CategoryIcon from '../components/CategoryIcon.vue'
+import { highlightService } from '../service/highlightService.js'
 
 const selectedYear = ref(2026)
+const highlights = ref([])
+const isLoading = ref(false);
+const errorMessage = ref('')
 
 const months = [
     { index: 1, label: 'JAN' },
@@ -19,22 +23,29 @@ const months = [
     { index: 12, label: 'DEC' },
 ]
 
-const highlights = ref([
-    { id: 1, date: '2026-01-14', title: 'Projektstart & Arkitektur', category: 'Career' },
-    { id: 2, date: '2026-02-18', title: 'Första prototypen i Vue', category: 'Project' },
-    { id: 3, date: '2026-03-08', title: 'Vinterresa till Åre', category: 'Travel' },
-    { id: 4, date: '2026-05-19', title: 'Halvmaraton i Göteborg', category: 'Training' },
-    { id: 5, date: '2026-05-28', title: 'Första kvällen på balkongen', category: 'Home' },
-    { id: 6, date: '2026-07-12', title: 'Segling i skärgården', category: 'Travel' },
-    { id: 7, date: '2026-08-22', title: 'Sensommarkväll vid havet', category: 'Personal' },
-    { id: 8, date: '2026-09-04', title: 'Concert', category: 'Concert' },
-    { id: 9, date: '2026-11-20', title: 'Tidslinjen tar form', category: 'Milestone' },
-])
-
 function parseDateParts(isoDate) {
-    const [year, month, day] = isoDate.split('-').map(Number)
+    if (!isoDate) return { year: null, month: null, day: null }
+    const [year, month, day] = String(isoDate).split('-').map(Number)
     return { year, month, day }
 }
+
+async function fetchHighlights() {
+    isLoading.value = true
+    errorMessage.value = ''
+
+    try {
+        const data = await highlightService.getAll()
+        highlights.value = data
+        console.log('[TimelineView] Fetched highlights data correctly from API:', data)
+    } catch (error) {
+        errorMessage.value = error?.message || 'Could not fetch timeline.'
+        console.error('[TimelineView] Error during fetching highlights', error)
+    } finally {
+        isLoading.value = false
+    }
+}
+
+onMounted(fetchHighlights)
 
 const highlightsByMonth = computed(() => {
     const grouped = {}
@@ -147,8 +158,9 @@ const highlightsByMonth = computed(() => {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.85);
-    padding: 0.55rem 1rem;
-    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -213,7 +225,7 @@ const highlightsByMonth = computed(() => {
 .month-label {
     font-size: 0.65rem;
     letter-spacing: 0.14em;
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.36);
 }
 
 .stem-wrapper {
@@ -277,7 +289,7 @@ const highlightsByMonth = computed(() => {
 .highlight-item {
     display: flex;
     align-items: flex-start;
-    gap: 0.8rem;
+    gap: 0.50rem;
     margin-left: -5px;
     cursor: pointer;
     transition: transform 0.2s ease;
@@ -291,9 +303,9 @@ const highlightsByMonth = computed(() => {
     width: 16px;
     height: 16px;
     flex-shrink: 0;
-    margin-top: 13px;
+    margin-top: 12px;
     margin-left: -2px;
-    color: rgba(165, 198, 235, 0.45);
+    color: rgba(255, 255, 255, 0.42);
     transition: color 0.2s ease;
 }
 
@@ -310,9 +322,10 @@ const highlightsByMonth = computed(() => {
     display: block;
     font-size: 0.60rem;
     letter-spacing: 0.12em;
-    color: rgba(165, 198, 235, 0.45);
+    color: rgba(255, 255, 255, 0.44);
     margin-bottom: 0.1rem;
     transition: color 0.2s ease;
+
 }
 
 .highlight-item:hover .item-date {
@@ -321,10 +334,10 @@ const highlightsByMonth = computed(() => {
 
 .item-title {
     font-size: 0.80rem;
-    font-weight: 300;
+    font-weight: 500;
     line-height: 1.4;
     margin: 0;
-    color: rgba(255, 255, 255, 0.72);
+    color: rgba(255, 255, 255, 0.78);
     transition: color 0.2s ease;
 }
 

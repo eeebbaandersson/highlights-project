@@ -11,18 +11,25 @@ class CategoryFixtures extends Fixture
     public function load(ObjectManager $manager): void
     {
         $categories = [
-            ['name' => 'Travel', 'icon' => 'plane'],
-            ['name' => 'Health', 'icon' => 'heart'],
-            ['name' => 'Concert', 'icon' => 'music'],
-            ['name' => 'Personal', 'icon' => 'user'],
-            ['name' => 'Career', 'icon' => 'briefcase'],
-            ['name' => 'Education', 'icon' => 'graduation-cap'],
+            'Achievement',
+            'Celebration',
+            'Career',
+            'Concert',
+            'Education',
+            'Family',
+            'Home',
+            'Milestone',
+            'Personal',
+            'Project',
+            'SmallWin',
+            'Training',
+            'Travel',
         ];
 
-        foreach ($categories as $data) {
+        foreach ($categories as $name) {
             $category = new Category();
-            $category->setName($data['name']);
-            $category->setColor($data['color']);
+            $category->setName($name);
+            $category->setColor('default');
             $category->setIsDefault(true);
 
             $manager->persist($category);
