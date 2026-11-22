@@ -50,7 +50,7 @@ h1 {
     font-weight: 800;
     color: #ffffff;
     margin-bottom: 1rem;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
 }
 
 .highlight-word {
@@ -99,20 +99,20 @@ h1 {
     padding: 0.85rem 2rem;
     font-size: 1rem;
     font-weight: 600;
+    letter-spacing: 1px;
     border-radius: 9999px;
     cursor: pointer;
     transition: all 0.2s ease;
     background-color: rgba(103, 232, 249, 0.1);
     border: 1px solid #67e8f9;
     color: #67e8f9;
-
     display: inline-block;
     text-decoration: none;
 }
 
 .primary-btn:hover {
-    background-color: rgba(103, 232, 249, 0.18);
     box-shadow: 0 0 20px rgba(103, 232, 249, 0.2);
+
 }
 
 </style>
