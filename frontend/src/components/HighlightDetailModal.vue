@@ -81,12 +81,13 @@ async function handleSave() {
 async function handleDelete() {
     if (!props.highlight) return
 
+    const deletedId = props.highlight.id
     isDeleting.value = true
     errorMessage.value = ''
 
     try {
-        await highlightService.remove(props.highlight.id)
-        emit('deleted', props.highlight.id)
+        await highlightService.remove(deletedId)
+        emit('deleted', deletedId)
     } catch (error) {
         errorMessage.value = error?.message || 'Could not delete highlight.'
     } finally {

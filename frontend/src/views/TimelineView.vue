@@ -6,7 +6,7 @@ import HighlightDetailModal from "../components/HighlightDetailModal.vue";
 
 const selectedYear = ref(2026)
 const highlights = ref([])
-const isLoading = ref(false)
+const isLoading = ref(true)
 const errorMessage = ref('')
 
 const selectedHighlight = ref(null)
@@ -100,6 +100,10 @@ const highlightsByMonth = computed(() => {
     return grouped
 })
 
+const hasHighlightsForSelectedYear = computed(() =>
+    Object.values(highlightsByMonth.value).some((items) => items.length > 0)
+)
+
 function handleHighlightUpdated(updatedItem) {
     if (!updatedItem) return
     highlights.value = highlights.value.map((item) =>
@@ -110,7 +114,10 @@ function handleHighlightUpdated(updatedItem) {
 
 function handleHighlightDeleted(deletedId) {
     highlights.value = highlights.value.filter((item) => item.id !== deletedId)
-    selectedHighlight.value = null
+
+    if (selectedHighlight.value?.id === deletedId) {
+        selectedHighlight.value = null
+    }
 }
 </script>
 
@@ -127,7 +134,21 @@ function handleHighlightDeleted(deletedId) {
             </div>
         </header>
 
-        <section class="timeline-scroll-container">
+        <p v-if="isLoading" class="timeline-status" role="status">Loading highlights…</p>
+
+        <div v-else-if="errorMessage" class="timeline-error" role="alert">
+            <div class="error-copy">
+                <span class="error-title">Could not load highlights</span>
+                <span class="error-detail">{{ errorMessage }}</span>
+            </div>
+            <button type="button" class="btn-retry" @click="fetchHighlights">Retry</button>
+        </div>
+
+        <p v-else-if="!hasHighlightsForSelectedYear" class="timeline-status">
+            No highlights found for {{ selectedYear }}.
+        </p>
+
+        <section v-else class="timeline-scroll-container">
             <div class="timeline-grid">
                 <div class="axis-line"></div>
 
@@ -149,18 +170,19 @@ function handleHighlightDeleted(deletedId) {
                         <div class="stem-line"></div>
 
                         <div class="items-stack">
-                            <article
+                            <button
                                 v-for="item in highlightsByMonth[month.index]"
                                 :key="item.id"
+                                type="button"
                                 class="highlight-item"
                                 @click="selectedHighlight = item"
                             >
                                 <CategoryIcon :category="item.category" class="item-icon" />
-                                <div class="item-content">
+                                <span class="item-content">
                                     <span class="item-date">{{ item.formattedDate }}</span>
-                                    <h3 class="item-title">{{ item.title }}</h3>
-                                </div>
-                            </article>
+                                    <span class="item-title">{{ item.title }}</span>
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -218,6 +240,65 @@ function handleHighlightDeleted(deletedId) {
 .btn-ghost:hover {
     background: rgba(255, 255, 255, 0.09);
     border-color: rgba(255, 255, 255, 0.25);
+}
+
+.timeline-status {
+    margin: 0;
+    padding: 1.5rem 0;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.timeline-error {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2.5rem;
+    max-width: 480px;
+    align-self: flex-start;
+    padding: 1.15rem 1.4rem;
+    margin-bottom: 1.5rem;
+    background: rgba(34, 22, 26, 0.72);
+    border: 1px solid rgba(248, 113, 113, 0.18);
+    border-radius: 14px;
+}
+
+.error-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: left;
+}
+
+.error-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: rgba(252, 165, 165, 0.85);
+}
+
+.error-detail {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.42);
+}
+
+.btn-retry {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 0.65rem 1.15rem;
+    font: inherit;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.86);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.btn-retry:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(103, 232, 249, 0.4);
+    color: #67e8f9;
 }
 
 .timeline-scroll-container {
@@ -342,6 +423,17 @@ function handleHighlightDeleted(deletedId) {
     margin-left: -5px;
     cursor: pointer;
     transition: transform 0.2s ease;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+
+.highlight-item:focus-visible {
+    outline: 2px solid #67e8f9;
+    outline-offset: 3px;
 }
 
 .highlight-item:hover {
@@ -382,6 +474,7 @@ function handleHighlightDeleted(deletedId) {
 }
 
 .item-title {
+    display: block;
     font-size: 0.80rem;
     font-weight: 500;
     line-height: 1.4;
