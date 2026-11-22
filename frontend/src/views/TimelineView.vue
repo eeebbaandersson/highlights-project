@@ -12,15 +12,19 @@ const errorMessage = ref('')
 const selectedHighlight = ref(null)
 
 const defaultCategories = [
-    'Education',
-    'SmallWin',
-    'Travel',
-    'Personal',
-    'Home',
-    'Training',
-    'Project',
+    'Achievement',
+    'Career',
     'Celebration',
+    'Concert',
+    'Education',
+    'Family',
+    'Home',
     'Milestone',
+    'Personal',
+    'Project',
+    'SmallWin',
+    'Training',
+    'Travel',
 ]
 
 const availableCategories = computed(() => {

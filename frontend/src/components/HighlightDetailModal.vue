@@ -132,7 +132,7 @@ async function handleDelete() {
                     </p>
 
                     <footer class="modal-footer">
-                        <div class="delete-group">
+                        <div class="delete-group" :class="{ 'is-confirming': confirmDelete }">
                             <button
                                 v-if="!confirmDelete"
                                 type="button"
@@ -147,25 +147,28 @@ async function handleDelete() {
                             </button>
                             <template v-else>
                                 <span class="confirm-text">Delete highlight?</span>
-                                <button
-                                    type="button"
-                                    class="btn-danger"
-                                    :disabled="isDeleting"
-                                    @click="handleDelete"
-                                >
-                                    {{ isDeleting ? 'Deleting...' : 'CONFIRM' }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn-text"
-                                    @click="confirmDelete = false"
-                                >
-                                    CANCEL
-                                </button>
+                                <div class="confirm-actions">
+                                    <button
+                                        type="button"
+                                        class="btn-danger"
+                                        :disabled="isDeleting"
+                                        @click="handleDelete"
+                                    >
+                                        {{ isDeleting ? 'Deleting...' : 'CONFIRM' }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn-text"
+                                        @click="confirmDelete = false"
+                                    >
+                                        CANCEL
+                                    </button>
+                                </div>
                             </template>
                         </div>
 
                         <button
+                            v-if="!confirmDelete"
                             type="button"
                             class="btn-icon"
                             aria-label="Edit highlight"
@@ -291,6 +294,18 @@ async function handleDelete() {
 
 .btn-close:hover {
     color: rgba(255, 255, 255, 0.9);
+}
+
+.delete-group.is-confirming {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.confirm-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
 }
 
 .modal-title {

@@ -12,8 +12,8 @@ class CategoryFixtures extends Fixture
     {
         $categories = [
             'Achievement',
-            'Celebration',
             'Career',
+            'Celebration',
             'Concert',
             'Education',
             'Family',
