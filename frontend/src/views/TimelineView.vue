@@ -465,11 +465,9 @@ function handleHighlightDeleted(deletedId) {
 @keyframes highlightSoftEnter {
     from {
         opacity: 0;
-        transform: translateY(4px);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
     }
 }
 
@@ -486,7 +484,7 @@ function handleHighlightDeleted(deletedId) {
     font: inherit;
     text-align: left;
     opacity: 0;
-    animation: highlightSoftEnter 1s ease-out forwards;
+    animation: highlightSoftEnter 1.8s ease-out forwards;
     --stagger: 0;
     animation-delay: calc(min(var(--stagger, 0), 12) * 25ms);
     transition: transform 0.2s ease;
