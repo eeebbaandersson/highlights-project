@@ -22,6 +22,7 @@ const emit = defineEmits(['close', 'created'])
 
 const isSaving = ref(false)
 const errorMessage = ref('')
+let formSession = 0
 
 const form = ref({
     title: '',
@@ -51,24 +52,27 @@ function resetForm() {
 watch(
     () => props.open,
     (isOpen) => {
+        formSession += 1
         if (isOpen) {
             resetForm()
+            isSaving.value = false
         }
     },
-    { immediate: true }
+    { immediate: true, flush: 'sync' }
 )
 
-function handleKeydown(event) {
-    if (event.key === 'Escape' && props.open) {
-        emit('close')
-    }
+function closeModal() {
+    formSession += 1
+    isSaving.value = false
+    emit('close')
 }
 
-onMounted(() => window.addEventListener('keydown', handleKeydown))
-onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
-
 async function handleCreate() {
-    if (!form.value.title.trim() || !form.value.date) return
+    if (isSaving.value || !form.value.title.trim() || !form.value.date) return
+
+    const requestSession = formSession
+    const isCurrentSession = () =>
+        props.open && requestSession === formSession
 
     isSaving.value = true
     errorMessage.value = ''
@@ -82,13 +86,25 @@ async function handleCreate() {
         })
 
         emit('created', created)
-        emit('close')
+        if (isCurrentSession()) closeModal()
     } catch (error) {
-        errorMessage.value = error?.message || 'Could not create highlight.'
+        if (isCurrentSession()) {
+            errorMessage.value = error?.message || 'Could not create highlight.'
+        }
     } finally {
-        isSaving.value = false
+        if (isCurrentSession()) isSaving.value = false
     }
 }
+
+function handleKeydown(event) {
+    if (event.key === 'Escape' && props.open) {
+        closeModal()
+    }
+}
+
+onMounted(() => window.addEventListener('keydown', handleKeydown))
+onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+
 </script>
 
 <template>
@@ -96,7 +112,7 @@ async function handleCreate() {
         <div
             v-if="open"
             class="modal-backdrop"
-            @click.self="emit('close')"
+            @click.self="closeModal()"
         >
             <div class="modal-card" role="dialog" aria-modal="true" aria-label="New highlight">
                 <header class="modal-header">
@@ -108,7 +124,7 @@ async function handleCreate() {
                         type="button"
                         class="btn-close"
                         aria-label="Close"
-                        @click="emit('close')"
+                        @click="closeModal()"
                     >
                         ✕
                     </button>
@@ -160,7 +176,7 @@ async function handleCreate() {
                         <button
                             type="button"
                             class="btn-text"
-                            @click="emit('close')"
+                            @click="closeModal()"
                         >
                             CANCEL
                         </button>

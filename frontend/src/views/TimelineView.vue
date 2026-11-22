@@ -10,6 +10,10 @@ const highlights = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 
+const locallyCreated = new Map()
+let pendingChanges = null
+
+
 const selectedHighlight = ref(null)
 const isCreateOpen = ref(false)
 
@@ -58,17 +62,39 @@ function parseDateParts(isoDate) {
 }
 
 async function fetchHighlights() {
+    if (pendingChanges) return
+
+    const changes = new Map()
+    pendingChanges = changes
     isLoading.value = true
-    errorMessage.value = ''
 
     try {
         const data = await highlightService.getAll()
-        highlights.value = data
-        console.log('[TimelineView] Fetched highlights data correctly from API:', data)
+        const merged = new Map(data.map((item) => [item.id, item]))
+
+        for (const [id, item] of locallyCreated) {
+            if (merged.has(id) && !changes.has(id)) {
+                locallyCreated.delete(id)
+            } else {
+                merged.set(id, item)
+            }
+        }
+
+        for (const [id, item] of changes) {
+            if (item === null) {
+                merged.delete(id)
+            } else {
+                merged.set(id, item)
+            }
+        }
+
+        highlights.value = [...merged.values()]
+        errorMessage.value = ''
     } catch (error) {
         errorMessage.value = error?.message || 'Could not fetch timeline.'
         console.error('[TimelineView] Error during fetching highlights', error)
     } finally {
+        pendingChanges = null
         isLoading.value = false
     }
 }
@@ -106,11 +132,33 @@ const hasHighlightsForSelectedYear = computed(() =>
 
 function handleHighlightCreated(createdItem) {
     if (!createdItem) return
-    highlights.value = [...highlights.value, createdItem]
+
+    locallyCreated.set(createdItem.id, createdItem)
+    pendingChanges?.set(createdItem.id, createdItem)
+
+    highlights.value = [
+        ...highlights.value.filter((item) => item.id !== createdItem.id),
+        createdItem,
+    ]
+
+    const { year } = parseDateParts(createdItem.date)
+    if (Number.isInteger(year) && year > 0) {
+        selectedYear.value = year
+    }
+
+    if (errorMessage.value && !pendingChanges) {
+        void fetchHighlights()
+    }
 }
 
 function handleHighlightUpdated(updatedItem) {
     if (!updatedItem) return
+
+    if (locallyCreated.has(updatedItem.id)) {
+        locallyCreated.set(updatedItem.id, updatedItem)
+    }
+    pendingChanges?.set(updatedItem.id, updatedItem)
+
     highlights.value = highlights.value.map((item) =>
         item.id === updatedItem.id ? updatedItem : item
     )
@@ -118,6 +166,9 @@ function handleHighlightUpdated(updatedItem) {
 }
 
 function handleHighlightDeleted(deletedId) {
+    locallyCreated.delete(deletedId)
+    pendingChanges?.set(deletedId, null)
+
     highlights.value = highlights.value.filter((item) => item.id !== deletedId)
 
     if (selectedHighlight.value?.id === deletedId) {
@@ -157,21 +208,34 @@ function handleHighlightDeleted(deletedId) {
             </div>
         </header>
 
-        <p v-if="isLoading" class="timeline-status" role="status">Loading highlights…</p>
+        <p v-if="isLoading" class="timeline-status" role="status">
+            Loading highlights…
+        </p>
 
-        <div v-else-if="errorMessage" class="timeline-error" role="alert">
+        <div v-if="errorMessage" class="timeline-error" role="alert">
             <div class="error-copy">
-                <span class="error-title">Could not load highlights</span>
+                <span class="error-title">Could not load all highlights</span>
                 <span class="error-detail">{{ errorMessage }}</span>
+                <span class="error-detail">Some highlights may be missing.</span>
             </div>
-            <button type="button" class="btn-retry" @click="fetchHighlights">Retry</button>
+            <button
+                type="button"
+                class="btn-retry"
+                :disabled="isLoading"
+                @click="fetchHighlights"
+            >
+                Retry
+            </button>
         </div>
 
-        <p v-else-if="!hasHighlightsForSelectedYear" class="timeline-status">
+        <p
+            v-if="!isLoading && !errorMessage && !hasHighlightsForSelectedYear"
+            class="timeline-status"
+        >
             No highlights found for {{ selectedYear }}.
         </p>
 
-        <section v-else class="timeline-scroll-container">
+        <section v-if="hasHighlightsForSelectedYear" class="timeline-scroll-container">
             <div class="timeline-grid">
                 <div class="axis-line"></div>
 
