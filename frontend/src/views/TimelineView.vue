@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import CategoryIcon from '../components/CategoryIcon.vue'
 import { highlightService } from '../service/highlightService.js'
 import HighlightDetailModal from "../components/HighlightDetailModal.vue";
+import CreateHighlightModal from "../components/CreateHighlightModal.vue";
 
 const selectedYear = ref(2026)
 const highlights = ref([])
@@ -10,6 +11,7 @@ const isLoading = ref(true)
 const errorMessage = ref('')
 
 const selectedHighlight = ref(null)
+const isCreateOpen = ref(false)
 
 const defaultCategories = [
     'Achievement',
@@ -48,8 +50,6 @@ const months = [
     { index: 11, label: 'NOV' },
     { index: 12, label: 'DEC' },
 ]
-
-
 
 function parseDateParts(isoDate) {
     if (!isoDate) return { year: null, month: null, day: null }
@@ -104,6 +104,11 @@ const hasHighlightsForSelectedYear = computed(() =>
     Object.values(highlightsByMonth.value).some((items) => items.length > 0)
 )
 
+function handleHighlightCreated(createdItem) {
+    if (!createdItem) return
+    highlights.value = [...highlights.value, createdItem]
+}
+
 function handleHighlightUpdated(updatedItem) {
     if (!updatedItem) return
     highlights.value = highlights.value.map((item) =>
@@ -130,7 +135,25 @@ function handleHighlightDeleted(deletedId) {
                 </h1>
             </div>
             <div class="actions">
-                <button class="btn-ghost" aria-label="New highlight">+</button>
+                <button
+                    type="button"
+                    class="btn-add-highlight"
+                    aria-label="Create highlight"
+                    title="Create highlight"
+                    @click="isCreateOpen = true"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="action-icon"
+                        aria-hidden="true"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                </button>
             </div>
         </header>
 
@@ -189,6 +212,13 @@ function handleHighlightDeleted(deletedId) {
             </div>
         </section>
     </main>
+    <CreateHighlightModal
+        :open="isCreateOpen"
+        :categories="availableCategories"
+        :default-year="selectedYear"
+        @close="isCreateOpen = false"
+        @created="handleHighlightCreated"
+    />
     <HighlightDetailModal
         :highlight="selectedHighlight"
         :categories="availableCategories"
@@ -225,21 +255,36 @@ function handleHighlightDeleted(deletedId) {
     color: rgba(255, 255, 255, 0.45);
 }
 
-.btn-ghost {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.85);
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    font-size: 0.85rem;
+.btn-add-highlight {
+    position: fixed;
+    right: 3.5rem;
+    bottom: 2.5rem;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 20, 26, 0.88);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.88);
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     cursor: pointer;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     transition: all 0.2s ease;
 }
 
-.btn-ghost:hover {
+.btn-add-highlight:hover {
     background: rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(103, 232, 249, 0.45);
+    color: #67e8f9;
+}
+
+.action-icon {
+    width: 17px;
+    height: 17px;
+    display: block;
 }
 
 .timeline-status {
@@ -490,8 +535,17 @@ function handleHighlightDeleted(deletedId) {
 /* Mobile view */
 @media (max-width: 768px) {
     .timeline-page {
-        padding: 1.5rem 1.25rem 3rem;
+        padding: 1.5rem 1.25rem 5.5rem;
         overflow-x: hidden;
+    }
+
+    .btn-add-highlight {
+        right: 1.25rem;
+        bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        flex-shrink: 0;
     }
 
     .timeline-header {
@@ -506,11 +560,6 @@ function handleHighlightDeleted(deletedId) {
 
     .timeline-header h1 {
         font-size: 1.35rem;
-    }
-
-    .btn-ghost {
-        flex-shrink: 0;
-        padding: 0.45rem 0.85rem;
     }
 
     .timeline-scroll-container {

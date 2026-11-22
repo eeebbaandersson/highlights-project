@@ -228,7 +228,7 @@ async function handleDelete() {
                             class="btn-primary"
                             :disabled="isSaving"
                         >
-                            {{ isSaving ? 'Saving...' : 'SAVE CHANGES' }}
+                            {{ isSaving ? 'Saving...' : 'SAVE' }}
                         </button>
                     </footer>
                 </form>
