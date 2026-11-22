@@ -194,10 +194,11 @@ function handleHighlightDeleted(deletedId) {
 
                         <div class="items-stack">
                             <button
-                                v-for="item in highlightsByMonth[month.index]"
+                                v-for="(item, itemIdx) in highlightsByMonth[month.index]"
                                 :key="item.id"
                                 type="button"
                                 class="highlight-item"
+                                :style="{ '--stagger': idx * 2 + itemIdx }"
                                 @click="selectedHighlight = item"
                             >
                                 <CategoryIcon :category="item.category" class="item-icon" />
@@ -461,19 +462,34 @@ function handleHighlightDeleted(deletedId) {
     flex-direction: column-reverse;
 }
 
+@keyframes highlightSoftEnter {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .highlight-item {
     display: flex;
     align-items: flex-start;
     gap: 0.50rem;
     margin-left: -5px;
     cursor: pointer;
-    transition: transform 0.2s ease;
     padding: 0;
     border: 0;
     background: transparent;
     color: inherit;
     font: inherit;
     text-align: left;
+    opacity: 0;
+    animation: highlightSoftEnter 1s ease-out forwards;
+    --stagger: 0;
+    animation-delay: calc(min(var(--stagger, 0), 12) * 25ms);
+    transition: transform 0.2s ease;
 }
 
 .highlight-item:focus-visible {
@@ -511,7 +527,6 @@ function handleHighlightDeleted(deletedId) {
     color: rgba(255, 255, 255, 0.44);
     margin-bottom: 0.1rem;
     transition: color 0.2s ease;
-
 }
 
 .highlight-item:hover .item-date {
@@ -655,6 +670,13 @@ function handleHighlightDeleted(deletedId) {
 
     .highlight-item:hover {
         transform: translatex(2px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .highlight-item {
+        opacity: 1;
+        animation: none;
     }
 }
 </style>
