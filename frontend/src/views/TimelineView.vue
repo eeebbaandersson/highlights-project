@@ -675,9 +675,11 @@ function handleHighlightDeleted(deletedId) {
     }
 
     .timeline-header {
-        align-items: center;
-        gap: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.9rem;
         margin-bottom: 1.5rem;
+        margin-top: calc(1rem + env(safe-area-inset-top, 0px));
     }
 
     .title-group {
