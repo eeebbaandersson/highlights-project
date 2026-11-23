@@ -4,11 +4,13 @@ import CategoryIcon from '../components/CategoryIcon.vue'
 import { highlightService } from '../service/highlightService.js'
 import HighlightDetailModal from "../components/HighlightDetailModal.vue";
 import CreateHighlightModal from "../components/CreateHighlightModal.vue";
+import CategoryFilter from "../components/CategoryFilter.vue";
 
 const selectedYear = ref(2026)
 const highlights = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
+const selectedCategory = ref('')
 
 const locallyCreated = new Map()
 let pendingChanges = null
@@ -111,10 +113,15 @@ const highlightsByMonth = computed(() => {
         const { year, month, day } = parseDateParts(item.date)
         if (year === selectedYear.value && grouped[month]) {
             const monthLabel = months[month - 1]?.label || ''
+            const isMatch =
+                !selectedCategory.value || item.category === selectedCategory.value
+
             grouped[month].push({
                 ...item,
                 day,
                 formattedDate: `${String(day).padStart(2, '0')} ${monthLabel}`,
+                isMatch,
+                isDimmed: Boolean(selectedCategory.value) && !isMatch,
             })
         }
     })
@@ -185,7 +192,11 @@ function handleHighlightDeleted(deletedId) {
                     <span class="overview">OVERVIEW</span>
                 </h1>
             </div>
-            <div class="actions">
+            <CategoryFilter
+                v-model="selectedCategory"
+                :categories="availableCategories"
+            />
+
                 <button
                     type="button"
                     class="btn-add-highlight"
@@ -205,7 +216,7 @@ function handleHighlightDeleted(deletedId) {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
                 </button>
-            </div>
+
         </header>
 
         <p v-if="isLoading" class="timeline-status" role="status">
@@ -252,6 +263,11 @@ function handleHighlightDeleted(deletedId) {
                     <div
                         v-if="highlightsByMonth[month.index].length"
                         class="stem-wrapper"
+                        :class="{
+                            'is-inactive-filter':
+                            Boolean(selectedCategory) &&
+                            !highlightsByMonth[month.index].some((entry) => entry.isMatch),
+                            }"
                     >
                         <div class="axis-dot"></div>
                         <div class="stem-line"></div>
@@ -262,6 +278,7 @@ function handleHighlightDeleted(deletedId) {
                                 :key="item.id"
                                 type="button"
                                 class="highlight-item"
+                                :class="{ 'is-dimmed': item.isDimmed }"
                                 :style="{ '--stagger': idx * 2 + itemIdx }"
                                 @click="selectedHighlight = item"
                             >
@@ -497,6 +514,21 @@ function handleHighlightDeleted(deletedId) {
     z-index: 3;
 }
 
+.axis-dot,
+.stem-line {
+    transition: opacity 0.25s ease;
+}
+
+.stem-wrapper.is-inactive-filter .axis-dot,
+.stem-wrapper.is-inactive-filter .stem-line {
+    opacity: 0.18;
+}
+
+.stem-wrapper.is-inactive-filter:has(.highlight-item:hover) .axis-dot,
+.stem-wrapper.is-inactive-filter:has(.highlight-item:hover) .stem-line {
+    opacity: 0.75;
+}
+
 .month-column.is-top .axis-dot {
     bottom: 0;
     transform: translate(-50%, 50%);
@@ -561,6 +593,23 @@ function handleHighlightDeleted(deletedId) {
 
 .highlight-item:hover {
     transform: scale(1.02);
+}
+
+.highlight-item .item-icon,
+.highlight-item .item-content {
+    transition: opacity 0.25s ease, color 0.2s ease;
+}
+
+.highlight-item.is-dimmed .item-icon,
+.highlight-item.is-dimmed .item-content {
+    opacity: 0.12;
+}
+
+.highlight-item.is-dimmed:hover .item-icon,
+.highlight-item.is-dimmed:hover .item-content,
+.highlight-item.is-dimmed:focus-visible .item-icon,
+.highlight-item.is-dimmed:focus-visible .item-content {
+    opacity: 0.92;
 }
 
 .item-icon {
