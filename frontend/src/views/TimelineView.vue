@@ -3,13 +3,19 @@ import { ref, computed, onMounted } from 'vue'
 import CategoryIcon from '../components/CategoryIcon.vue'
 import { highlightService } from '../service/highlightService.js'
 import HighlightDetailModal from "../components/HighlightDetailModal.vue";
+import CreateHighlightModal from "../components/CreateHighlightModal.vue";
 
 const selectedYear = ref(2026)
 const highlights = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 
+const locallyCreated = new Map()
+let pendingChanges = null
+
+
 const selectedHighlight = ref(null)
+const isCreateOpen = ref(false)
 
 const defaultCategories = [
     'Achievement',
@@ -49,8 +55,6 @@ const months = [
     { index: 12, label: 'DEC' },
 ]
 
-
-
 function parseDateParts(isoDate) {
     if (!isoDate) return { year: null, month: null, day: null }
     const [year, month, day] = String(isoDate).split('-').map(Number)
@@ -58,17 +62,39 @@ function parseDateParts(isoDate) {
 }
 
 async function fetchHighlights() {
+    if (pendingChanges) return
+
+    const changes = new Map()
+    pendingChanges = changes
     isLoading.value = true
-    errorMessage.value = ''
 
     try {
         const data = await highlightService.getAll()
-        highlights.value = data
-        console.log('[TimelineView] Fetched highlights data correctly from API:', data)
+        const merged = new Map(data.map((item) => [item.id, item]))
+
+        for (const [id, item] of locallyCreated) {
+            if (merged.has(id) && !changes.has(id)) {
+                locallyCreated.delete(id)
+            } else {
+                merged.set(id, item)
+            }
+        }
+
+        for (const [id, item] of changes) {
+            if (item === null) {
+                merged.delete(id)
+            } else {
+                merged.set(id, item)
+            }
+        }
+
+        highlights.value = [...merged.values()]
+        errorMessage.value = ''
     } catch (error) {
         errorMessage.value = error?.message || 'Could not fetch timeline.'
         console.error('[TimelineView] Error during fetching highlights', error)
     } finally {
+        pendingChanges = null
         isLoading.value = false
     }
 }
@@ -104,8 +130,35 @@ const hasHighlightsForSelectedYear = computed(() =>
     Object.values(highlightsByMonth.value).some((items) => items.length > 0)
 )
 
+function handleHighlightCreated(createdItem) {
+    if (!createdItem) return
+
+    locallyCreated.set(createdItem.id, createdItem)
+    pendingChanges?.set(createdItem.id, createdItem)
+
+    highlights.value = [
+        ...highlights.value.filter((item) => item.id !== createdItem.id),
+        createdItem,
+    ]
+
+    const { year } = parseDateParts(createdItem.date)
+    if (Number.isInteger(year) && year > 0) {
+        selectedYear.value = year
+    }
+
+    if (errorMessage.value && !pendingChanges) {
+        void fetchHighlights()
+    }
+}
+
 function handleHighlightUpdated(updatedItem) {
     if (!updatedItem) return
+
+    if (locallyCreated.has(updatedItem.id)) {
+        locallyCreated.set(updatedItem.id, updatedItem)
+    }
+    pendingChanges?.set(updatedItem.id, updatedItem)
+
     highlights.value = highlights.value.map((item) =>
         item.id === updatedItem.id ? updatedItem : item
     )
@@ -113,6 +166,9 @@ function handleHighlightUpdated(updatedItem) {
 }
 
 function handleHighlightDeleted(deletedId) {
+    locallyCreated.delete(deletedId)
+    pendingChanges?.set(deletedId, null)
+
     highlights.value = highlights.value.filter((item) => item.id !== deletedId)
 
     if (selectedHighlight.value?.id === deletedId) {
@@ -130,25 +186,56 @@ function handleHighlightDeleted(deletedId) {
                 </h1>
             </div>
             <div class="actions">
-                <button class="btn-ghost" aria-label="New highlight">+</button>
+                <button
+                    type="button"
+                    class="btn-add-highlight"
+                    aria-label="Create highlight"
+                    title="Create highlight"
+                    @click="isCreateOpen = true"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="action-icon"
+                        aria-hidden="true"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                </button>
             </div>
         </header>
 
-        <p v-if="isLoading" class="timeline-status" role="status">Loading highlights…</p>
+        <p v-if="isLoading" class="timeline-status" role="status">
+            Loading highlights…
+        </p>
 
-        <div v-else-if="errorMessage" class="timeline-error" role="alert">
+        <div v-if="errorMessage" class="timeline-error" role="alert">
             <div class="error-copy">
-                <span class="error-title">Could not load highlights</span>
+                <span class="error-title">Could not load all highlights</span>
                 <span class="error-detail">{{ errorMessage }}</span>
+                <span class="error-detail">Some highlights may be missing.</span>
             </div>
-            <button type="button" class="btn-retry" @click="fetchHighlights">Retry</button>
+            <button
+                type="button"
+                class="btn-retry"
+                :disabled="isLoading"
+                @click="fetchHighlights"
+            >
+                Retry
+            </button>
         </div>
 
-        <p v-else-if="!hasHighlightsForSelectedYear" class="timeline-status">
+        <p
+            v-if="!isLoading && !errorMessage && !hasHighlightsForSelectedYear"
+            class="timeline-status"
+        >
             No highlights found for {{ selectedYear }}.
         </p>
 
-        <section v-else class="timeline-scroll-container">
+        <section v-if="hasHighlightsForSelectedYear" class="timeline-scroll-container">
             <div class="timeline-grid">
                 <div class="axis-line"></div>
 
@@ -171,10 +258,11 @@ function handleHighlightDeleted(deletedId) {
 
                         <div class="items-stack">
                             <button
-                                v-for="item in highlightsByMonth[month.index]"
+                                v-for="(item, itemIdx) in highlightsByMonth[month.index]"
                                 :key="item.id"
                                 type="button"
                                 class="highlight-item"
+                                :style="{ '--stagger': idx * 2 + itemIdx }"
                                 @click="selectedHighlight = item"
                             >
                                 <CategoryIcon :category="item.category" class="item-icon" />
@@ -189,6 +277,13 @@ function handleHighlightDeleted(deletedId) {
             </div>
         </section>
     </main>
+    <CreateHighlightModal
+        :open="isCreateOpen"
+        :categories="availableCategories"
+        :default-year="selectedYear"
+        @close="isCreateOpen = false"
+        @created="handleHighlightCreated"
+    />
     <HighlightDetailModal
         :highlight="selectedHighlight"
         :categories="availableCategories"
@@ -225,21 +320,36 @@ function handleHighlightDeleted(deletedId) {
     color: rgba(255, 255, 255, 0.45);
 }
 
-.btn-ghost {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.85);
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    font-size: 0.85rem;
+.btn-add-highlight {
+    position: fixed;
+    right: 3.5rem;
+    bottom: 2.5rem;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 20, 26, 0.88);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.88);
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     cursor: pointer;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     transition: all 0.2s ease;
 }
 
-.btn-ghost:hover {
+.btn-add-highlight:hover {
     background: rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(103, 232, 249, 0.45);
+    color: #67e8f9;
+}
+
+.action-icon {
+    width: 17px;
+    height: 17px;
+    display: block;
 }
 
 .timeline-status {
@@ -416,19 +526,32 @@ function handleHighlightDeleted(deletedId) {
     flex-direction: column-reverse;
 }
 
+@keyframes highlightSoftEnter {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 .highlight-item {
     display: flex;
     align-items: flex-start;
     gap: 0.50rem;
     margin-left: -5px;
     cursor: pointer;
-    transition: transform 0.2s ease;
     padding: 0;
     border: 0;
     background: transparent;
     color: inherit;
     font: inherit;
     text-align: left;
+    opacity: 0;
+    animation: highlightSoftEnter 1.8s ease-out forwards;
+    --stagger: 0;
+    animation-delay: calc(min(var(--stagger, 0), 12) * 25ms);
+    transition: transform 0.2s ease;
 }
 
 .highlight-item:focus-visible {
@@ -466,7 +589,6 @@ function handleHighlightDeleted(deletedId) {
     color: rgba(255, 255, 255, 0.44);
     margin-bottom: 0.1rem;
     transition: color 0.2s ease;
-
 }
 
 .highlight-item:hover .item-date {
@@ -490,8 +612,17 @@ function handleHighlightDeleted(deletedId) {
 /* Mobile view */
 @media (max-width: 768px) {
     .timeline-page {
-        padding: 1.5rem 1.25rem 3rem;
+        padding: 1.5rem 1.25rem 5.5rem;
         overflow-x: hidden;
+    }
+
+    .btn-add-highlight {
+        right: 1.25rem;
+        bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        flex-shrink: 0;
     }
 
     .timeline-header {
@@ -506,11 +637,6 @@ function handleHighlightDeleted(deletedId) {
 
     .timeline-header h1 {
         font-size: 1.35rem;
-    }
-
-    .btn-ghost {
-        flex-shrink: 0;
-        padding: 0.45rem 0.85rem;
     }
 
     .timeline-scroll-container {
@@ -606,6 +732,13 @@ function handleHighlightDeleted(deletedId) {
 
     .highlight-item:hover {
         transform: translatex(2px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .highlight-item {
+        opacity: 1;
+        animation: none;
     }
 }
 </style>
