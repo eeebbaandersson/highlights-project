@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import CategoryIcon from '../components/CategoryIcon.vue'
 import { highlightService } from '../service/highlightService.js'
 import HighlightDetailModal from "../components/HighlightDetailModal.vue";
@@ -40,6 +40,12 @@ const availableCategories = computed(() => {
         .map((item) => item.category)
         .filter(Boolean)
     return [...new Set([...defaultCategories, ...fromHighlights])]
+})
+
+watch(availableCategories, (categories) => {
+    if (selectedCategory.value && !categories.includes(selectedCategory.value)) {
+        selectedCategory.value = ''
+    }
 })
 
 const months = [
