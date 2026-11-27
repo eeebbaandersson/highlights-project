@@ -6,7 +6,8 @@ import HighlightDetailModal from "../components/HighlightDetailModal.vue";
 import CreateHighlightModal from "../components/CreateHighlightModal.vue";
 import CategoryFilter from "../components/CategoryFilter.vue";
 
-const selectedYear = ref(2026)
+const currentYear = new Date().getFullYear()
+const selectedYear = ref(currentYear)
 const highlights = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
@@ -14,7 +15,6 @@ const selectedCategory = ref('')
 
 const locallyCreated = new Map()
 let pendingChanges = null
-
 
 const selectedHighlight = ref(null)
 const isCreateOpen = ref(false)
@@ -68,6 +68,51 @@ function parseDateParts(isoDate) {
     const [year, month, day] = String(isoDate).split('-').map(Number)
     return { year, month, day }
 }
+
+const availableYears = computed(() => {
+    const years = new Set([currentYear])
+
+    for (const item of highlights.value) {
+        const { year } = parseDateParts(item.date)
+        if (Number.isInteger(year) && year > 0) {
+            years.add(year)
+        }
+    }
+
+    return [...years].sort((a, b) => a - b)
+})
+
+const currentYearIndex = computed(() =>
+    availableYears.value.indexOf(selectedYear.value)
+)
+
+const canGoPrevYear = computed(() => currentYearIndex.value > 0)
+
+const canGoNextYear = computed(() =>
+    currentYearIndex.value !== -1 &&
+    currentYearIndex.value < availableYears.value.length - 1
+)
+
+function goToPrevYear() {
+    if (canGoPrevYear.value) {
+        selectedYear.value = availableYears.value[currentYearIndex.value - 1]
+    }
+}
+
+function goToNextYear() {
+    if (canGoNextYear.value) {
+        selectedYear.value = availableYears.value[currentYearIndex.value + 1]
+    }
+}
+
+watch(availableYears, (years) => {
+    if (!years.length) return
+    if (!years.includes(selectedYear.value)) {
+        selectedYear.value = years.includes(currentYear)
+            ? currentYear
+            : years[years.length - 1]
+    }
+}, { immediate: true })
 
 async function fetchHighlights() {
     if (pendingChanges) return
@@ -194,9 +239,37 @@ function handleHighlightDeleted(deletedId) {
     <main class="timeline-page">
         <header class="timeline-header">
             <div class="title-group">
-                <h1>{{ selectedYear }}
-                    <span class="overview">OVERVIEW</span>
-                </h1>
+                <div class="year-switcher">
+                    <button
+                        type="button"
+                        class="year-nav-btn"
+                        :disabled="!canGoPrevYear"
+                        aria-label="Previous year"
+                        title="Previous year"
+                        @click="goToPrevYear"
+                    >
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m10 3.5-4.5 4.5 4.5 4.5" />
+                        </svg>
+                    </button>
+
+                    <h1>{{ selectedYear }}
+                        <span class="overview">OVERVIEW</span>
+                    </h1>
+
+                    <button
+                        type="button"
+                        class="year-nav-btn"
+                        :disabled="!canGoNextYear"
+                        aria-label="Next year"
+                        title="Next year"
+                        @click="goToNextYear"
+                    >
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m6 3.5 4.5 4.5-4.5 4.5" />
+                        </svg>
+                    </button>
+                </div>
             </div>
             <CategoryFilter
                 v-model="selectedCategory"
@@ -337,6 +410,46 @@ function handleHighlightDeleted(deletedId) {
     font-weight: 400;
     letter-spacing: -0.02em;
     margin: 0;
+}
+
+.year-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.year-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.year-nav-btn svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+.year-nav-btn:hover:not(:disabled),
+.year-nav-btn:focus-visible:not(:disabled) {
+    color: #67e8f9;
+    background: rgba(255, 255, 255, 0.04);
+    outline: none;
+}
+
+.year-nav-btn:disabled {
+    opacity: 0.15;
+    cursor: default;
+    pointer-events: none;
 }
 
 .overview {
@@ -487,7 +600,7 @@ function handleHighlightDeleted(deletedId) {
 
 .month-label {
     font-size: 0.65rem;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.35em;
     color: rgba(255, 255, 255, 0.36);
 }
 
@@ -669,6 +782,20 @@ function handleHighlightDeleted(deletedId) {
     .timeline-page {
         padding: 1.5rem 1.25rem 5.5rem;
         overflow-x: hidden;
+    }
+
+    .year-switcher {
+        gap: 0.5rem;
+    }
+
+    .year-nav-btn {
+        width: 24px;
+        height: 24px;
+    }
+
+    .year-nav-btn svg {
+        width: 16px;
+        height: 16px;
     }
 
     .btn-add-highlight {
