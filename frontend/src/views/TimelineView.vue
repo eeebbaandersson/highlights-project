@@ -769,7 +769,7 @@ function handleHighlightDeleted(deletedId) {
     font-weight: 500;
     line-height: 1.4;
     margin: 0;
-    color: rgba(255, 255, 255, 0.78);
+    color: rgba(255, 255, 255, 0.70);
     transition: color 0.2s ease;
 }
 
