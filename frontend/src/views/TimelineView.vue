@@ -276,31 +276,26 @@ function handleHighlightDeleted(deletedId) {
                 :categories="availableCategories"
             />
 
-                <button
-                    type="button"
-                    class="btn-add-highlight"
-                    aria-label="Create highlight"
-                    title="Create highlight"
-                    @click="isCreateOpen = true"
+            <button
+                type="button"
+                class="btn-add-highlight"
+                aria-label="Create highlight"
+                title="Create highlight"
+                @click="isCreateOpen = true"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="action-icon"
+                    aria-hidden="true"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="action-icon"
-                        aria-hidden="true"
-                    >
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                </button>
-
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+            </button>
         </header>
-
-        <p v-if="isLoading" class="timeline-status" role="status">
-            Loading highlights…
-        </p>
 
         <div v-if="errorMessage" class="timeline-error" role="alert">
             <div class="error-copy">
@@ -391,10 +386,15 @@ function handleHighlightDeleted(deletedId) {
 
 <style scoped>
 .timeline-page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     padding: 2.5rem 3.5rem;
+    overflow-x: clip;
     color: rgba(255, 255, 255, 0.92);
 }
 
@@ -402,6 +402,9 @@ function handleHighlightDeleted(deletedId) {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
+    gap: 1.5rem;
+    width: 100%;
+    min-width: 0;
     margin-bottom: 2rem;
 }
 
@@ -549,6 +552,9 @@ function handleHighlightDeleted(deletedId) {
 
 .timeline-scroll-container {
     flex: 1;
+    width: 100%;
+    min-width: 0;
+    min-height: 540px;
     display: flex;
     align-items: center;
     overflow-x: auto;
@@ -559,8 +565,8 @@ function handleHighlightDeleted(deletedId) {
     position: relative;
     display: grid;
     grid-template-columns: repeat(12, minmax(110px, 1fr));
-    width: 100%;
-    min-width: 1200px;
+    width: 1200px;
+    flex-shrink: 0;
     height: 540px;
 }
 
@@ -781,7 +787,7 @@ function handleHighlightDeleted(deletedId) {
 @media (max-width: 768px) {
     .timeline-page {
         padding: 1.5rem 1.25rem 5.5rem;
-        overflow-x: hidden;
+        overflow-x: clip;
     }
 
     .year-switcher {
@@ -808,6 +814,8 @@ function handleHighlightDeleted(deletedId) {
     }
 
     .timeline-header {
+        box-sizing: border-box;
+        width: 100%;
         flex-direction: column;
         align-items: flex-start;
         gap: 0.9rem;
@@ -825,6 +833,7 @@ function handleHighlightDeleted(deletedId) {
 
     .timeline-scroll-container {
         display: block;
+        min-height: 0;
         overflow-x: visible;
         padding: 0.5rem 0;
     }
