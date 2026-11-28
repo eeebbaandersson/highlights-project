@@ -150,101 +150,93 @@ onBeforeUnmount(() => {
             @cancel.prevent="closeModal()"
             @click="handleDialogClick"
         >
-                <header class="modal-header">
-                    <div class="modal-meta">
-                        <CategoryIcon :category="form.category" class="meta-icon" />
-                        <span class="meta-category">New highlight</span>
-                    </div>
+            <header class="modal-header">
+                <div class="modal-meta">
+                    <CategoryIcon :category="form.category" class="meta-icon" />
+                    <span class="meta-category">New highlight</span>
+                </div>
+                <button
+                    type="button"
+                    class="btn-close"
+                    aria-label="Close"
+                    @click="closeModal()"
+                >
+                    ✕
+                </button>
+            </header>
+
+            <p v-if="errorMessage" class="modal-error">{{ errorMessage }}</p>
+
+            <form class="modal-form" @submit.prevent="handleCreate">
+                <label class="field">
+                    <span>Title</span>
+                    <input
+                        ref="titleEl"
+                        v-model="form.title"
+                        type="text"
+                        required
+                    />
+                </label>
+
+                <div class="field-row">
+                    <label class="field">
+                        <span>Category</span>
+                        <select v-if="categories.length" v-model="form.category">
+                            <option value="">No category</option>
+                            <option
+                                v-for="cat in categories"
+                                :key="cat"
+                                :value="cat"
+                            >
+                                {{ cat }}
+                            </option>
+                        </select>
+                        <input v-else v-model="form.category" type="text" />
+                    </label>
+                    <label class="field">
+                        <span>Date</span>
+                        <input v-model="form.date" type="date" required />
+                    </label>
+                </div>
+
+                <label class="field">
+                    <span>Description</span>
+                    <textarea
+                        v-model="form.description"
+                        rows="4"
+                        placeholder="Optional notes..."
+                    />
+                </label>
+
+                <footer class="modal-footer">
                     <button
                         type="button"
-                        class="btn-close"
-                        aria-label="Close"
+                        class="btn-text"
                         @click="closeModal()"
                     >
-                        ✕
+                        CANCEL
                     </button>
-                </header>
-
-                <p v-if="errorMessage" class="modal-error">{{ errorMessage }}</p>
-
-                <form class="modal-form" @submit.prevent="handleCreate">
-                    <label class="field">
-                        <span>Title</span>
-                        <input
-                            ref="titleEl"
-                            v-model="form.title"
-                            type="text"
-                            required
-                        />
-                    </label>
-
-                    <div class="field-row">
-                        <label class="field">
-                            <span>Category</span>
-                            <select v-if="categories.length" v-model="form.category">
-                                <option value="">No category</option>
-                                <option
-                                    v-for="cat in categories"
-                                    :key="cat"
-                                    :value="cat"
-                                >
-                                    {{ cat }}
-                                </option>
-                            </select>
-                            <input v-else v-model="form.category" type="text" />
-                        </label>
-                        <label class="field">
-                            <span>Date</span>
-                            <input v-model="form.date" type="date" required />
-                        </label>
-                    </div>
-
-                    <label class="field">
-                        <span>Description</span>
-                        <textarea
-                            v-model="form.description"
-                            rows="4"
-                            placeholder="Optional notes..."
-                        />
-                    </label>
-
-                    <footer class="modal-footer">
-                        <button
-                            type="button"
-                            class="btn-text"
-                            @click="closeModal()"
-                        >
-                            CANCEL
-                        </button>
-                        <button
-                            type="submit"
-                            class="btn-primary"
-                            :disabled="isSaving"
-                        >
-                            {{ isSaving ? 'Creating...' : 'CREATE' }}
-                        </button>
-                    </footer>
-                </form>
+                    <button
+                        type="submit"
+                        class="btn-primary"
+                        :disabled="isSaving"
+                    >
+                        {{ isSaving ? 'Creating...' : 'CREATE' }}
+                    </button>
+                </footer>
+            </form>
         </dialog>
     </Teleport>
 </template>
 
 <style scoped>
-.modal-backdrop {
-    position: fixed;
-    inset: 0;
-    backdrop-filter: blur(6px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem;
-    z-index: 50;
-}
-
-
 .modal-card {
-    width: 100%;
+    box-sizing: border-box;
+    width: calc(100vw - 2rem);
     max-width: 460px;
+    max-height: calc(100dvh - 2rem);
+    margin: auto;
+    overflow-y: auto;
     background: #0d141a;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 14px;
@@ -308,7 +300,7 @@ onBeforeUnmount(() => {
 
 .field-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 0.75rem;
 }
 
@@ -316,6 +308,7 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    min-width: 0;
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.55);
 }
@@ -323,6 +316,9 @@ onBeforeUnmount(() => {
 .field input,
 .field select,
 .field textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
@@ -365,6 +361,7 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -397,5 +394,15 @@ onBeforeUnmount(() => {
 
 .btn-text:hover {
     color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 520px) {
+    .modal-card {
+        padding: 1.25rem 1.15rem;
+    }
+
+    .field-row {
+        grid-template-columns: 1fr;
+    }
 }
 </style>

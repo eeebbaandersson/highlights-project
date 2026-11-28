@@ -6,7 +6,8 @@ import HighlightDetailModal from "../components/HighlightDetailModal.vue";
 import CreateHighlightModal from "../components/CreateHighlightModal.vue";
 import CategoryFilter from "../components/CategoryFilter.vue";
 
-const selectedYear = ref(2026)
+const currentYear = new Date().getFullYear()
+const selectedYear = ref(currentYear)
 const highlights = ref([])
 const isLoading = ref(true)
 const errorMessage = ref('')
@@ -15,9 +16,22 @@ const selectedCategory = ref('')
 const locallyCreated = new Map()
 let pendingChanges = null
 
-
 const selectedHighlight = ref(null)
 const isCreateOpen = ref(false)
+
+const showLoading = ref(false)
+
+watch(isLoading, (loading, _previous, onCleanup) => {
+    showLoading.value = false
+
+    if (loading) {
+        const timer = setTimeout(() => {
+            showLoading.value = true
+        }, 250)
+
+        onCleanup(() => clearTimeout(timer))
+    }
+}, { immediate: true })
 
 const defaultCategories = [
     'Achievement',
@@ -68,6 +82,51 @@ function parseDateParts(isoDate) {
     const [year, month, day] = String(isoDate).split('-').map(Number)
     return { year, month, day }
 }
+
+const availableYears = computed(() => {
+    const years = new Set([currentYear])
+
+    for (const item of highlights.value) {
+        const { year } = parseDateParts(item.date)
+        if (Number.isInteger(year) && year > 0) {
+            years.add(year)
+        }
+    }
+
+    return [...years].sort((a, b) => a - b)
+})
+
+const currentYearIndex = computed(() =>
+    availableYears.value.indexOf(selectedYear.value)
+)
+
+const canGoPrevYear = computed(() => currentYearIndex.value > 0)
+
+const canGoNextYear = computed(() =>
+    currentYearIndex.value !== -1 &&
+    currentYearIndex.value < availableYears.value.length - 1
+)
+
+function goToPrevYear() {
+    if (canGoPrevYear.value) {
+        selectedYear.value = availableYears.value[currentYearIndex.value - 1]
+    }
+}
+
+function goToNextYear() {
+    if (canGoNextYear.value) {
+        selectedYear.value = availableYears.value[currentYearIndex.value + 1]
+    }
+}
+
+watch(availableYears, (years) => {
+    if (!years.length) return
+    if (!years.includes(selectedYear.value)) {
+        selectedYear.value = years.includes(currentYear)
+            ? currentYear
+            : years[years.length - 1]
+    }
+}, { immediate: true })
 
 async function fetchHighlights() {
     if (pendingChanges) return
@@ -194,40 +253,66 @@ function handleHighlightDeleted(deletedId) {
     <main class="timeline-page">
         <header class="timeline-header">
             <div class="title-group">
-                <h1>{{ selectedYear }}
-                    <span class="overview">OVERVIEW</span>
-                </h1>
+                <div class="year-switcher">
+                    <button
+                        type="button"
+                        class="year-nav-btn"
+                        :disabled="!canGoPrevYear"
+                        aria-label="Previous year"
+                        title="Previous year"
+                        @click="goToPrevYear"
+                    >
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m10 3.5-4.5 4.5 4.5 4.5" />
+                        </svg>
+                    </button>
+
+                    <h1>{{ selectedYear }}
+                        <span class="overview">OVERVIEW</span>
+                    </h1>
+
+                    <button
+                        type="button"
+                        class="year-nav-btn"
+                        :disabled="!canGoNextYear"
+                        aria-label="Next year"
+                        title="Next year"
+                        @click="goToNextYear"
+                    >
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m6 3.5 4.5 4.5-4.5 4.5" />
+                        </svg>
+                    </button>
+                </div>
             </div>
             <CategoryFilter
                 v-model="selectedCategory"
                 :categories="availableCategories"
             />
 
-                <button
-                    type="button"
-                    class="btn-add-highlight"
-                    aria-label="Create highlight"
-                    title="Create highlight"
-                    @click="isCreateOpen = true"
+            <button
+                type="button"
+                class="btn-add-highlight"
+                aria-label="Create highlight"
+                title="Create highlight"
+                @click="isCreateOpen = true"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="action-icon"
+                    aria-hidden="true"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="action-icon"
-                        aria-hidden="true"
-                    >
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                </button>
-
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+            </button>
+            <p v-if="showLoading" class="timeline-status" role="status">
+                Loading highlights…
+            </p>
         </header>
-
-        <p v-if="isLoading" class="timeline-status" role="status">
-            Loading highlights…
-        </p>
 
         <div v-if="errorMessage" class="timeline-error" role="alert">
             <div class="error-copy">
@@ -318,10 +403,15 @@ function handleHighlightDeleted(deletedId) {
 
 <style scoped>
 .timeline-page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     padding: 2.5rem 3.5rem;
+    overflow-x: clip;
     color: rgba(255, 255, 255, 0.92);
 }
 
@@ -329,6 +419,9 @@ function handleHighlightDeleted(deletedId) {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
+    gap: 1.5rem;
+    width: 100%;
+    min-width: 0;
     margin-bottom: 2rem;
 }
 
@@ -337,6 +430,46 @@ function handleHighlightDeleted(deletedId) {
     font-weight: 400;
     letter-spacing: -0.02em;
     margin: 0;
+}
+
+.year-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.year-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.year-nav-btn svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+.year-nav-btn:hover:not(:disabled),
+.year-nav-btn:focus-visible:not(:disabled) {
+    color: #67e8f9;
+    background: rgba(255, 255, 255, 0.04);
+    outline: none;
+}
+
+.year-nav-btn:disabled {
+    opacity: 0.15;
+    cursor: default;
+    pointer-events: none;
 }
 
 .overview {
@@ -436,6 +569,9 @@ function handleHighlightDeleted(deletedId) {
 
 .timeline-scroll-container {
     flex: 1;
+    width: 100%;
+    min-width: 0;
+    min-height: 540px;
     display: flex;
     align-items: center;
     overflow-x: auto;
@@ -447,7 +583,8 @@ function handleHighlightDeleted(deletedId) {
     display: grid;
     grid-template-columns: repeat(12, minmax(110px, 1fr));
     width: 100%;
-    min-width: 1200px;
+    min-width: 1320px;
+    flex-shrink: 0;
     height: 540px;
 }
 
@@ -487,7 +624,7 @@ function handleHighlightDeleted(deletedId) {
 
 .month-label {
     font-size: 0.65rem;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.35em;
     color: rgba(255, 255, 255, 0.36);
 }
 
@@ -656,7 +793,7 @@ function handleHighlightDeleted(deletedId) {
     font-weight: 500;
     line-height: 1.4;
     margin: 0;
-    color: rgba(255, 255, 255, 0.78);
+    color: rgba(255, 255, 255, 0.70);
     transition: color 0.2s ease;
 }
 
@@ -667,8 +804,22 @@ function handleHighlightDeleted(deletedId) {
 /* Mobile view */
 @media (max-width: 768px) {
     .timeline-page {
-        padding: 1.5rem 1.25rem 5.5rem;
-        overflow-x: hidden;
+        padding: 1.5rem 1.5rem 6.5rem 3.5rem;
+        overflow-x: clip;
+    }
+
+    .year-switcher {
+        gap: 0.5rem;
+    }
+
+    .year-nav-btn {
+        width: 24px;
+        height: 24px;
+    }
+
+    .year-nav-btn svg {
+        width: 16px;
+        height: 16px;
     }
 
     .btn-add-highlight {
@@ -681,6 +832,8 @@ function handleHighlightDeleted(deletedId) {
     }
 
     .timeline-header {
+        box-sizing: border-box;
+        width: 100%;
         flex-direction: column;
         align-items: flex-start;
         gap: 0.9rem;
@@ -698,6 +851,7 @@ function handleHighlightDeleted(deletedId) {
 
     .timeline-scroll-container {
         display: block;
+        min-height: 0;
         overflow-x: visible;
         padding: 0.5rem 0;
     }
@@ -710,11 +864,12 @@ function handleHighlightDeleted(deletedId) {
         height: auto;
         gap: 0.25rem;
         padding-left: 2.25rem;
+        padding-bottom: 1.5rem;
     }
 
     .axis-line {
         top: 0;
-        bottom: 0;
+        bottom: -0.75rem;
         left: 0.65rem;
         right: auto;
         width: 1px;
@@ -790,12 +945,6 @@ function handleHighlightDeleted(deletedId) {
     .highlight-item:hover {
         transform: translatex(2px);
     }
-}
 
-@media (prefers-reduced-motion: reduce) {
-    .highlight-item {
-        opacity: 1;
-        animation: none;
-    }
 }
 </style>

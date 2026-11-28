@@ -26,6 +26,9 @@ const subTitle = ref('A year goes by fast, and without a place to capture it, ev
 
 <style scoped>
 .hero-container {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -114,5 +117,4 @@ h1 {
     box-shadow: 0 0 20px rgba(103, 232, 249, 0.2);
 
 }
-
 </style>
