@@ -19,6 +19,20 @@ let pendingChanges = null
 const selectedHighlight = ref(null)
 const isCreateOpen = ref(false)
 
+const showLoading = ref(false)
+
+watch(isLoading, (loading, _previous, onCleanup) => {
+    showLoading.value = false
+
+    if (loading) {
+        const timer = setTimeout(() => {
+            showLoading.value = true
+        }, 250)
+
+        onCleanup(() => clearTimeout(timer))
+    }
+}, { immediate: true })
+
 const defaultCategories = [
     'Achievement',
     'Career',
@@ -295,6 +309,9 @@ function handleHighlightDeleted(deletedId) {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
             </button>
+            <p v-if="showLoading" class="timeline-status" role="status">
+                Loading highlights…
+            </p>
         </header>
 
         <div v-if="errorMessage" class="timeline-error" role="alert">
@@ -565,7 +582,8 @@ function handleHighlightDeleted(deletedId) {
     position: relative;
     display: grid;
     grid-template-columns: repeat(12, minmax(110px, 1fr));
-    width: 1200px;
+    width: 100%;
+    min-width: 1320px;
     flex-shrink: 0;
     height: 540px;
 }
@@ -786,7 +804,7 @@ function handleHighlightDeleted(deletedId) {
 /* Mobile view */
 @media (max-width: 768px) {
     .timeline-page {
-        padding: 1.5rem 1.25rem 5.5rem;
+        padding: 1.5rem 1.5rem 6.5rem 3.5rem;
         overflow-x: clip;
     }
 
@@ -846,11 +864,12 @@ function handleHighlightDeleted(deletedId) {
         height: auto;
         gap: 0.25rem;
         padding-left: 2.25rem;
+        padding-bottom: 1.5rem;
     }
 
     .axis-line {
         top: 0;
-        bottom: 0;
+        bottom: -0.75rem;
         left: 0.65rem;
         right: auto;
         width: 1px;
@@ -926,12 +945,6 @@ function handleHighlightDeleted(deletedId) {
     .highlight-item:hover {
         transform: translatex(2px);
     }
-}
 
-@media (prefers-reduced-motion: reduce) {
-    .highlight-item {
-        opacity: 1;
-        animation: none;
-    }
 }
 </style>

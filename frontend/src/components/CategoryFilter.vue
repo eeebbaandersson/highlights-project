@@ -101,6 +101,7 @@ function onChange(event) {
     position: relative;
     display: inline-flex;
     align-items: center;
+    overflow: hidden;
 }
 
 .category-select,
@@ -112,13 +113,16 @@ function onChange(event) {
     font-size: 0.80rem;
     letter-spacing: 0.04em;
     line-height: 1;
-    transition: all 0.2s ease;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .category-select {
+    -webkit-appearance: none;
     appearance: none;
     background-color: rgba(255, 255, 255, 0.04);
+    background-clip: padding-box;
     border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: none;
     min-width: 144px;
     padding: 0 2rem 0 0.8rem;
     color: rgba(255, 255, 255, 0.85);
@@ -135,6 +139,7 @@ function onChange(event) {
 .category-select:focus-visible {
     background-color: rgba(255, 255, 255, 0.08);
     border-color: rgba(103, 232, 249, 0.45);
+    box-shadow: none;
     color: #67e8f9;
     outline: none;
 }
